@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { getAdsStatusApi } from '../../api/ads';
 import { NotificationBell } from '../ui/NotificationBell';
 
-export const Topbar = ({ onToggleSidebar }) => {
+export const Topbar = ({ onToggleSidebar, isSidebarOpen = true }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [adsOnline, setAdsOnline] = useState(false);
@@ -30,7 +30,8 @@ export const Topbar = ({ onToggleSidebar }) => {
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          className="p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          title={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
         >
           <Menu className="w-5 h-5" />
         </button>

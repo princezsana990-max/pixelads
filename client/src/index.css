@@ -678,13 +678,13 @@
   }
 }
 
-/* Layout: sidebar pushes content on desktop, overlays on mobile */
+/* Layout: sidebar pushes content on desktop when open, overlays on mobile */
 .app-content {
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
 }
-@media (max-width: 1023px) {
+@media (min-width: 1024px) {
   .app-content {
-    margin-left: 0 !important;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 

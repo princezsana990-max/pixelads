@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 
-export const Sidebar = ({ isOpen, onClose }) => {
+export const Sidebar = ({ isOpen, onClose, desktopOpen = true, onToggleDesktop }) => {
   const { user } = useAuth();
   const { settings } = useSettings();
 
@@ -60,8 +60,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 glass-sidebar flex flex-col transition-transform duration-250 lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 glass-sidebar flex flex-col transition-all duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${
+          desktopOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'
         }`}
         style={{ width: 'var(--sidebar-width)' }}
       >
@@ -85,12 +87,24 @@ export const Sidebar = ({ isOpen, onClose }) => {
               {settings.company_name || 'PIXEL ADS'}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              title="Close menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {onToggleDesktop && (
+              <button
+                onClick={onToggleDesktop}
+                className="hidden lg:flex p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                title="Hide sidebar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="px-4 py-3.5 border-b border-white/10">
