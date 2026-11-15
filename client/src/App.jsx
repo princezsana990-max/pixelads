@@ -71,7 +71,12 @@ export const App = () => {
         <ThemeProvider>
           <SettingsProvider>
             <ToastProvider>
-              <BrowserRouter>
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />

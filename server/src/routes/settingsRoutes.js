@@ -7,10 +7,11 @@ const { validate } = require('../middleware/validate');
 const { updateSettingsSchema } = require('../validators/settingsValidator');
 const { ROLES } = require('../constants/roles');
 
-router.use(authenticate);
-
+// Public endpoint for company branding (logo, company name)
 router.get('/', settingsController.getSettings);
-router.put('/', requireRole(ROLES.ADMIN), validate(updateSettingsSchema), settingsController.updateSettings);
-router.get('/dashboard-stats', requireRole(ROLES.ADMIN), settingsController.getDashboardStats);
+
+// Authenticated & Admin-only routes
+router.put('/', authenticate, requireRole(ROLES.ADMIN), validate(updateSettingsSchema), settingsController.updateSettings);
+router.get('/dashboard-stats', authenticate, requireRole(ROLES.ADMIN), settingsController.getDashboardStats);
 
 module.exports = router;

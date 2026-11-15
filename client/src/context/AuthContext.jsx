@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
       const data = await getMeApi();
       setUser(data.user);
     } catch (err) {
+      localStorage.removeItem('pixel_ads_token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -24,6 +25,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const data = await loginApi(credentials);
+    if (data.token) {
+      localStorage.setItem('pixel_ads_token', data.token);
+    }
     setUser(data.user);
     return data.user;
   };
@@ -32,6 +36,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await logoutApi();
     } finally {
+      localStorage.removeItem('pixel_ads_token');
       setUser(null);
     }
   };

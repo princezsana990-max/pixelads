@@ -3,9 +3,15 @@ const API_BASE = '/api';
 export const apiClient = async (endpoint, options = {}) => {
   const url = `${API_BASE}${endpoint}`;
 
+  const token = localStorage.getItem('pixel_ads_token');
+
   const headers = {
     ...options.headers
   };
+
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
