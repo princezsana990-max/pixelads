@@ -19,7 +19,14 @@ const communicationRoutes = require('./routes/communicationRoutes');
 const app = express();
 
 app.use(cors({
-  origin: env.CLIENT_URL,
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps, curl, or same-origin serverless)
+    if (!origin) return callback(null, true);
+    if (!env.CLIENT_URL || env.CLIENT_URL === '*' || origin.includes('vercel.app') || origin === env.CLIENT_URL || origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 
