@@ -618,8 +618,65 @@
 
 
 /* ═══════════════════════════════════════════════════
-   MOBILE RESPONSIVE — Global overrides
+   MOBILE RESPONSIVE & HARDWARE ACCELERATION OPTIMIZATION
    ═══════════════════════════════════════════════════ */
+
+/* Mobile performance: replace costly multi-layer blur filters with hardware-friendly solid glass backgrounds */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll !important; /* Fixed background attachments cause heavy scroll lag on mobile GPUs */
+  }
+
+  .glass-card,
+  .glass-panel,
+  .glass-sidebar,
+  .glass-topbar,
+  .modal-box {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html.dark-theme .glass-card,
+  html:not(.light-theme) .glass-card {
+    background: #141418 !important;
+  }
+
+  html.dark-theme .glass-panel,
+  html:not(.light-theme) .glass-panel {
+    background: #17171d !important;
+  }
+
+  html.dark-theme .glass-sidebar,
+  html:not(.light-theme) .glass-sidebar {
+    background: #0f0f13 !important;
+  }
+
+  html.dark-theme .glass-topbar,
+  html:not(.light-theme) .glass-topbar {
+    background: #121216 !important;
+  }
+
+  html.light-theme .glass-card {
+    background: #ffffff !important;
+  }
+
+  html.light-theme .glass-panel {
+    background: #f8fafc !important;
+  }
+
+  html.light-theme .glass-sidebar {
+    background: #ffffff !important;
+  }
+
+  html.light-theme .glass-topbar {
+    background: #ffffff !important;
+  }
+
+  /* Smooth GPU momentum scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
 
 /* Layout: sidebar pushes content on desktop, overlays on mobile */
 .app-content {
