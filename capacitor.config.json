@@ -1,0 +1,9 @@
+{
+  "appId": "com.pixelads.mobile",
+  "appName": "Pixel Ads",
+  "webDir": "client/dist",
+  "server": {
+    "url": "https://pixelads.vercel.app",
+    "cleartext": true
+  }
+}
