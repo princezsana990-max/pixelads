@@ -7,7 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatTime, formatCleanNotes, formatOrderType } from '../../utils/formatters';
 import { generateInvoicePdf } from '../../utils/invoicePdf';
 
 export const OrderInvoicePage = () => {
@@ -147,7 +147,7 @@ export const OrderInvoicePage = () => {
             </thead>
             <tbody>
               <tr>
-                <td>Video Production & Editing Services</td>
+                <td>{formatOrderType(order.order_type)}</td>
                 <td>{order.project_name}</td>
                 <td className="text-center">1</td>
                 <td className="text-right">{formatCurrency(order.total_amount)}</td>
@@ -159,10 +159,10 @@ export const OrderInvoicePage = () => {
 
         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pt-4 border-t border-white/10 print:border-black">
           <div className="max-w-md text-xs text-white/50 print:text-black">
-            {order.notes && (
+            {formatCleanNotes(order.clean_notes || order.notes) && (
               <div className="mb-4">
                 <strong className="block text-white/70 print:text-black mb-1">Notes / Instructions:</strong>
-                <p>{order.notes}</p>
+                <p className="whitespace-pre-wrap">{formatCleanNotes(order.clean_notes || order.notes)}</p>
               </div>
             )}
             <p>{settings?.invoice_footer_notes || 'Thank you for your business.'}</p>

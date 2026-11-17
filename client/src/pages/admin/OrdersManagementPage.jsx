@@ -20,7 +20,7 @@ import { useToast } from '../../components/ui/Toast';
 import { useSettings } from '../../context/SettingsContext';
 import { OrderChat } from '../../components/chat/OrderChat';
 import { generateInvoicePdf } from '../../utils/invoicePdf';
-import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatTime, formatCleanNotes, formatOrderType } from '../../utils/formatters';
 import { useDebounce } from '../../hooks/useDebounce';
 
 export const OrdersManagementPage = () => {
@@ -50,7 +50,7 @@ export const OrdersManagementPage = () => {
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
-    order_taker_id: '', project_name: '', script: '', notes: '',
+    order_taker_id: '', order_type: 'video_editing', project_name: '', script: '', notes: '',
     customer_name: '', customer_phone: '', customer_email: '',
     total_amount: '', advance_amount: '', status: ''
   });
@@ -128,9 +128,10 @@ export const OrdersManagementPage = () => {
     setSelectedOrder(order);
     setEditForm({
       order_taker_id: order.order_taker?.id || '',
+      order_type: order.order_type || 'video_editing',
       project_name: order.project_name || '',
       script: order.script || '',
-      notes: order.notes === '__DELETED_ARCHIVE__' ? '' : (order.notes || ''),
+      notes: formatCleanNotes(order.clean_notes || order.notes),
       customer_name: order.customer_name || '',
       customer_phone: order.customer_phone || '',
       customer_email: order.customer_email || '',
@@ -148,6 +149,7 @@ export const OrdersManagementPage = () => {
     try {
       await updateOrderApi(selectedOrder.id, {
         order_taker_id: editForm.order_taker_id || undefined,
+        order_type: editForm.order_type,
         project_name: editForm.project_name,
         script: editForm.script,
         notes: editForm.notes,
@@ -360,7 +362,14 @@ export const OrdersManagementPage = () => {
     },
     {
       key: 'project_name', label: 'Project',
-      render: (v) => <span className="font-heading font-semibold">{v}</span>
+      render: (v, row) => (
+        <div>
+          <span className="font-heading font-semibold block">{v}</span>
+          <span className="text-[10px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 inline-block mt-0.5">
+            {formatOrderType(row.order_type)}
+          </span>
+        </div>
+      )
     },
     {
       key: 'status', label: 'Status',
@@ -592,7 +601,7 @@ export const OrdersManagementPage = () => {
         }
       >
         <form onSubmit={handleSaveEdit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select
               label="Assigned Order Taker"
               value={editForm.order_taker_id}
@@ -602,6 +611,21 @@ export const OrdersManagementPage = () => {
               {orderTakers.map(ot => (
                 <option key={ot.id} value={ot.id}>{ot.name} ({ot.employee_id})</option>
               ))}
+            </Select>
+            <Select
+              label="Order Service Type"
+              value={editForm.order_type}
+              onChange={e => setEditForm(p => ({ ...p, order_type: e.target.value }))}
+              required
+            >
+              <option value="video_editing">🎬 Video Editing</option>
+              <option value="reels_tiktok">📱 Reels / Shorts / TikTok</option>
+              <option value="youtube_video">📺 YouTube Full Video</option>
+              <option value="graphic_design">🎨 Graphic Design</option>
+              <option value="motion_graphics">✨ Motion Graphics</option>
+              <option value="social_media_ads">📢 Social Media Ads</option>
+              <option value="voiceover_audio">🎙️ Voiceover & Audio</option>
+              <option value="other">⚙️ Custom / Other</option>
             </Select>
             <Select
               label="Order Status"
@@ -860,7 +884,13 @@ export const OrdersManagementPage = () => {
         {viewOrder && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="opacity-50">Project</span><p className="font-heading font-bold mt-0.5">{viewOrder.project_name}</p></div>
+              <div>
+                <span className="opacity-50">Project</span>
+                <p className="font-heading font-bold mt-0.5">{viewOrder.project_name}</p>
+                <span className="text-[10px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 inline-block mt-1">
+                  {formatOrderType(viewOrder.order_type)}
+                </span>
+              </div>
               <div><span className="opacity-50">Status</span><p className="mt-0.5"><Badge variant={viewOrder.status}>{viewOrder.status}</Badge></p></div>
               <div><span className="opacity-50">Order Taker</span><p className="mt-0.5">{viewOrder.order_taker?.name || '-'}</p></div>
               <div><span className="opacity-50">Editor</span><p className="mt-0.5">{viewOrder.editor?.name || 'Not assigned'}</p></div>
@@ -875,10 +905,12 @@ export const OrdersManagementPage = () => {
                 <div className="mt-1 p-3 rounded-lg glass-panel text-sm whitespace-pre-wrap">{viewOrder.script}</div>
               </div>
             )}
-            {viewOrder.notes && (
+            {formatCleanNotes(viewOrder.clean_notes || viewOrder.notes) && (
               <div>
-                <span className="text-sm opacity-50">Notes</span>
-                <div className="mt-1 p-3 rounded-lg glass-panel text-sm">{viewOrder.notes}</div>
+                <span className="text-sm opacity-50 font-heading font-bold">Notes / Remarks</span>
+                <div className="mt-1 p-3 rounded-lg glass-panel text-sm whitespace-pre-wrap">
+                  {formatCleanNotes(viewOrder.clean_notes || viewOrder.notes)}
+                </div>
               </div>
             )}
             {viewOrder.files?.length > 0 && (

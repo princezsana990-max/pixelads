@@ -32,3 +32,33 @@ export const formatDuration = (seconds) => {
   const secs = seconds % 60;
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
+
+/**
+ * Strips internal system markers (e.g. <!--AD_TRACKING:...--> and <!--ORDER_TYPE:...-->)
+ * from notes so users only see clean, human-readable remarks.
+ */
+export const formatCleanNotes = (notes) => {
+  if (!notes || typeof notes !== 'string') return '';
+  if (notes === '__DELETED_ARCHIVE__') return '';
+  return notes
+    .replace(/<!--AD_TRACKING:(\{.*?\})-->/g, '')
+    .replace(/<!--ORDER_TYPE:(.*?)-->/g, '')
+    .trim();
+};
+
+/**
+ * Human-friendly label for order types
+ */
+export const formatOrderType = (type) => {
+  const map = {
+    video_editing: 'Video Editing',
+    graphic_design: 'Graphic Design',
+    motion_graphics: 'Motion Graphics',
+    social_media_ads: 'Social Media Ads',
+    reels_tiktok: 'Reels / Shorts / TikTok',
+    youtube_video: 'YouTube Full Video',
+    voiceover_audio: 'Voiceover & Audio',
+    other: 'Custom / Other'
+  };
+  return map[type] || (type ? type.replace(/_/g, ' ') : 'Video Editing');
+};

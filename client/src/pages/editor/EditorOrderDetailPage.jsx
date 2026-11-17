@@ -11,7 +11,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import { OrderChat } from '../../components/chat/OrderChat';
-import { formatDate, formatTime } from '../../utils/formatters';
+import { formatDate, formatTime, formatCleanNotes, formatOrderType } from '../../utils/formatters';
 
 export const EditorOrderDetailPage = () => {
   const { id } = useParams();
@@ -247,13 +247,13 @@ export const EditorOrderDetailPage = () => {
                 </div>
               </div>
 
-              {order.notes && (
+              {formatCleanNotes(order.clean_notes || order.notes) && (
                 <div>
                   <label className="form-label">
-                    Special Remarks
+                    Special Remarks / Instructions
                   </label>
-                  <div className="p-3 glass-panel rounded-lg text-xs text-white/70">
-                    {order.notes}
+                  <div className="p-3 glass-panel rounded-lg text-xs text-white/80 whitespace-pre-wrap">
+                    {formatCleanNotes(order.clean_notes || order.notes)}
                   </div>
                 </div>
               )}

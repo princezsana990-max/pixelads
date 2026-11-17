@@ -38,6 +38,7 @@ const generateOrderCode = async () => {
 
 const createOrder = async (creatorUser, {
   order_taker_id,
+  order_type = 'video_editing',
   project_name,
   customer_name = 'Client',
   customer_phone = '',
@@ -62,6 +63,10 @@ const createOrder = async (creatorUser, {
       ? PAYMENT_STATUS.PARTIALLY_PAID
       : PAYMENT_STATUS.UNPAID;
 
+  // Embed order_type in notes marker so it is persisted cleanly without schema constraint
+  const cleanNotes = (notes || '').replace(/<!--ORDER_TYPE:(.*?)-->/g, '').trim();
+  const taggedNotes = cleanNotes ? `${cleanNotes}\n<!--ORDER_TYPE:${order_type}-->` : `<!--ORDER_TYPE:${order_type}-->`;
+
   const { data: newOrder, error } = await supabase
     .from('orders')
     .insert([
@@ -73,7 +78,7 @@ const createOrder = async (creatorUser, {
         customer_phone,
         customer_email: customer_email || null,
         script,
-        notes,
+        notes: taggedNotes,
         total_amount: numTotal,
         advance_amount: numAdvance,
         status: ORDER_STATUS.PENDING
@@ -128,6 +133,33 @@ const createOrder = async (creatorUser, {
     order: fullOrder,
     orderTakerName: fullOrder.order_taker?.name || creatorUser.name || 'Order Taker'
   });
+
+  // Also notify active editors that a new order has been received
+  const { data: allEditors } = await supabase
+    .from('users')
+    .select('id, name, email, username, role')
+    .eq('role', 'editor')
+    .eq('is_blocked', false);
+
+  if (allEditors && allEditors.length > 0) {
+    for (const ed of allEditors) {
+      const edMail = ed.email || (ed.username && ed.username.includes('@') ? ed.username : null);
+      if (!edMail) continue;
+      await emailService.sendOrderNotification({
+        orderId: fullOrder.id,
+        orderCode: fullOrder.order_code,
+        projectName: fullOrder.project_name,
+        customerName: fullOrder.customer_name || 'Client',
+        recipientEmail: edMail,
+        recipientName: ed.name || 'Video Editor',
+        actorName: fullOrder.order_taker?.name || creatorUser.name || 'System',
+        eventType: 'New Order Received',
+        eventDescription: `A new order ${fullOrder.order_code} ("${fullOrder.project_name}") has been received. Total: Rs. ${numTotal.toLocaleString()}, Advance: Rs. ${numAdvance.toLocaleString()}.`,
+        actionUrl: `/editor/dashboard`,
+        actionButtonText: 'View in Portal'
+      });
+    }
+  }
 
   return fullOrder;
 };
@@ -325,6 +357,24 @@ const assignEditor = async (orderId, editorId, adminId) => {
         link: `/order-taker/orders/${orderId}/review`
       }
     ]);
+  }
+
+  // Notify editor immediately via email
+  const editorEmail = editor.email || (editor.username && editor.username.includes('@') ? editor.username : null);
+  if (editorEmail) {
+    await emailService.sendOrderNotification({
+      orderId: updatedOrder.id,
+      orderCode: updatedOrder.order_code,
+      projectName: updatedOrder.project_name,
+      customerName: updatedOrder.customer_name || 'Client',
+      recipientEmail: editorEmail,
+      recipientName: editor.name || 'Video Editor',
+      actorName: 'Administrator',
+      eventType: 'New Order Received for Editing',
+      eventDescription: `You have received a new order ${updatedOrder.order_code} ("${updatedOrder.project_name}"). Please review the script, customer requirements, and files to begin video editing.`,
+      actionUrl: `/editor/orders/${orderId}`,
+      actionButtonText: 'Start Working on Order'
+    });
   }
 
   await emailService.notifyOrderParticipants({
@@ -566,6 +616,21 @@ const updateOrder = async (orderId, user, payload) => {
   const sanitized = { ...payload };
   if (user.role !== ROLES.ADMIN) {
     delete sanitized.order_taker_id;
+  }
+
+  // Handle order_type update if provided
+  if (sanitized.order_type || sanitized.notes !== undefined) {
+    const existingTracking = parseAdTracking(existing.notes, existing.created_at);
+    const newType = sanitized.order_type || existingTracking.order_type || 'video_editing';
+    const notesContent = sanitized.notes !== undefined ? sanitized.notes : existingTracking.clean_notes;
+    
+    // re-serialize
+    sanitized.notes = serializeAdTracking(notesContent, {
+      ...existingTracking,
+      order_type: newType
+    }, existing.created_at);
+
+    delete sanitized.order_type;
   }
 
   if (sanitized.total_amount !== undefined || sanitized.advance_amount !== undefined) {

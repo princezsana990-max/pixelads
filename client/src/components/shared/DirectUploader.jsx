@@ -7,12 +7,13 @@ export const DirectUploader = ({
   files = [],
   onChange,
   bucket = 'order-files',
-  acceptedTypes = 'video/*,image/*',
-  maxFiles = 10,
-  label = 'Upload Media Files'
+  acceptedTypes = '*/*',
+  maxFiles = 5000,
+  label = 'Upload Media Files (Videos, Pictures, Assets)'
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStats, setUploadStats] = useState({ current: 0, total: 0 });
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -26,15 +27,18 @@ export const DirectUploader = ({
     }
 
     setUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(5);
     setError(null);
 
     try {
       const uploadedResults = [];
       const total = selectedFiles.length;
+      setUploadStats({ current: 0, total });
 
       for (let i = 0; i < total; i++) {
         const file = selectedFiles[i];
+        setUploadStats({ current: i + 1, total });
+
         const signData = await getSignedUploadUrlApi(file.name, bucket);
         
         const { error: uploadError } = await supabase.storage
@@ -45,8 +49,9 @@ export const DirectUploader = ({
           throw new Error(uploadError.message);
         }
 
-        const isVideo = file.type.startsWith('video');
-        const fileType = isVideo ? 'video' : 'image';
+        const isVideo = file.type.startsWith('video') || /\.(mp4|mov|avi|mkv|wmv|flv|webm|m4v)$/i.test(file.name);
+        const isImage = file.type.startsWith('image') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|tiff|psd|ai)$/i.test(file.name);
+        const fileType = isVideo ? 'video' : isImage ? 'image' : 'attachment';
 
         uploadedResults.push({
           file_name: file.name,
@@ -66,6 +71,7 @@ export const DirectUploader = ({
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setUploadStats({ current: 0, total: 0 });
     }
   };
 
@@ -81,7 +87,7 @@ export const DirectUploader = ({
           {label}
         </label>
         <span className="text-xs text-white/40">
-          {files.length}/{maxFiles} attached
+          {files.length} file{files.length === 1 ? '' : 's'} attached (Any size & format supported)
         </span>
       </div>
 
@@ -108,10 +114,12 @@ export const DirectUploader = ({
             <Upload className="w-7 h-7 text-orange-400" />
           )}
           <span className="font-heading font-bold text-sm text-white">
-            {uploading ? `Uploading files (${uploadProgress}%)...` : 'Click to select videos or pictures'}
+            {uploading
+              ? `Uploading ${uploadStats.current}/${uploadStats.total} files (${uploadProgress}%)...`
+              : 'Click or drop files to upload (Videos, Pictures, Audios, Docs)'}
           </span>
           <span className="text-xs text-white/40">
-            Directly saved to high-speed cloud storage
+            Upload any quantity (10, 50, 200, 2000+), any size, and any format (MP4, MOV, PNG, JPG, PSD, etc.)
           </span>
         </div>
 

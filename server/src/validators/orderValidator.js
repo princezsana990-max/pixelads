@@ -1,13 +1,14 @@
 const { z } = require('zod');
 
 const orderFileSchema = z.object({
-  file_type: z.enum(['video', 'image', 'edited_video', 'audio', 'attachment']),
+  file_type: z.string().min(1).default('attachment'),
   file_url: z.string().url('Valid file URL required'),
   file_name: z.string().min(1, 'File name required')
 });
 
 const createOrderSchema = z.object({
   order_taker_id: z.string().uuid('Valid order taker ID').optional(),
+  order_type: z.string().trim().optional().default('video_editing'),
   project_name: z.string().trim().min(2, 'Project name is required'),
   customer_name: z.string().trim().min(2, 'Customer name is required').optional().default('Client'),
   customer_phone: z.string().trim().optional().default(''),
@@ -21,6 +22,7 @@ const createOrderSchema = z.object({
 
 const updateOrderSchema = z.object({
   order_taker_id: z.string().uuid().optional(),
+  order_type: z.string().trim().optional(),
   project_name: z.string().trim().min(2).optional(),
   customer_name: z.string().trim().min(2).optional(),
   customer_phone: z.string().trim().optional(),

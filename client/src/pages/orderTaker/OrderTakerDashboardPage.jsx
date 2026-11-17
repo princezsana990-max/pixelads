@@ -12,7 +12,7 @@ import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
 import { useSettings } from '../../context/SettingsContext';
 import { generateInvoicePdf } from '../../utils/invoicePdf';
-import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatTime, formatCleanNotes, formatOrderType } from '../../utils/formatters';
 import { useDebounce } from '../../hooks/useDebounce';
 
 export const OrderTakerDashboardPage = () => {
@@ -27,7 +27,7 @@ export const OrderTakerDashboardPage = () => {
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [editForm, setEditForm] = useState({ project_name: '', script: '', notes: '', customer_name: '', customer_phone: '', total_amount: '', advance_amount: '' });
+  const [editForm, setEditForm] = useState({ order_type: 'video_editing', project_name: '', script: '', notes: '', customer_name: '', customer_phone: '', total_amount: '', advance_amount: '' });
   const [editLoading, setEditLoading] = useState(false);
 
   const debouncedSearch = useDebounce(search, 350);
@@ -50,9 +50,10 @@ export const OrderTakerDashboardPage = () => {
   const handleOpenEdit = (order) => {
     setSelectedOrder(order);
     setEditForm({
+      order_type: order.order_type || 'video_editing',
       project_name: order.project_name || '',
       script: order.script || '',
-      notes: order.notes || '',
+      notes: formatCleanNotes(order.clean_notes || order.notes),
       customer_name: order.customer_name || '',
       customer_phone: order.customer_phone || '',
       total_amount: order.total_amount || '',
@@ -67,6 +68,7 @@ export const OrderTakerDashboardPage = () => {
     setEditLoading(true);
     try {
       await updateOrderApi(selectedOrder.id, {
+        order_type: editForm.order_type,
         project_name: editForm.project_name,
         script: editForm.script,
         notes: editForm.notes,
@@ -115,7 +117,14 @@ export const OrderTakerDashboardPage = () => {
         <div className="text-xs opacity-50">{formatTime(v)}</div>
       </div>
     )},
-    { key: 'project_name', label: 'Project', render: (v) => <span className="font-heading font-semibold">{v}</span> },
+    { key: 'project_name', label: 'Project', render: (v, row) => (
+      <div>
+        <span className="font-heading font-semibold block">{v}</span>
+        <span className="text-[10px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 inline-block mt-0.5">
+          {formatOrderType(row.order_type)}
+        </span>
+      </div>
+    )},
     { key: 'status', label: 'Status', render: (v) => <Badge variant={v}>{v}</Badge> },
     { key: 'total_amount', label: 'Total', render: (v) => <span className="font-heading font-bold">{formatCurrency(v)}</span> },
     { key: 'pending_amount', label: 'Pending', render: (v) => <span className={`font-heading font-bold ${Number(v) > 0 ? 'text-yellow-500' : 'opacity-40'}`}>{formatCurrency(v)}</span> },
@@ -216,6 +225,21 @@ export const OrderTakerDashboardPage = () => {
         }
       >
         <form onSubmit={handleSaveEdit} className="space-y-4">
+          <Select
+            label="Order Service Type"
+            value={editForm.order_type}
+            onChange={e => setEditForm(p => ({ ...p, order_type: e.target.value }))}
+            required
+          >
+            <option value="video_editing">🎬 Video Editing</option>
+            <option value="reels_tiktok">📱 Reels / Shorts / TikTok</option>
+            <option value="youtube_video">📺 YouTube Full Video</option>
+            <option value="graphic_design">🎨 Graphic Design</option>
+            <option value="motion_graphics">✨ Motion Graphics</option>
+            <option value="social_media_ads">📢 Social Media Ads</option>
+            <option value="voiceover_audio">🎙️ Voiceover & Audio</option>
+            <option value="other">⚙️ Custom / Other</option>
+          </Select>
           <Input label="Project Name" value={editForm.project_name} onChange={e => setEditForm(p => ({ ...p, project_name: e.target.value }))} required />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="Customer Name" value={editForm.customer_name} onChange={e => setEditForm(p => ({ ...p, customer_name: e.target.value }))} />

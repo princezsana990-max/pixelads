@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { formatCurrency, formatDate, formatTime } from './formatters';
+import { formatCurrency, formatDate, formatTime, formatCleanNotes } from './formatters';
 
 export const generateInvoicePdf = (order, settings) => {
   const doc = new jsPDF({
@@ -132,15 +132,16 @@ export const generateInvoicePdf = (order, settings) => {
   });
 
   const notesY = doc.lastAutoTable.finalY + 30;
+  const cleanNotes = formatCleanNotes(order.clean_notes || order.notes);
 
-  if (order.notes && order.notes !== '__DELETED_ARCHIVE__') {
+  if (cleanNotes) {
     doc.setFont('Calibri', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text('Notes / Remarks:', 40, notesY);
     doc.setFont('Arial', 'normal');
     doc.setFontSize(8.5);
-    const splitNotes = doc.splitTextToSize(order.notes, pageWidth - 80);
+    const splitNotes = doc.splitTextToSize(cleanNotes, pageWidth - 80);
     doc.text(splitNotes, 40, notesY + 15);
   }
 

@@ -20,6 +20,7 @@ export const NewOrderPage = () => {
 
   const [orderTakers, setOrderTakers] = useState([]);
   const [selectedOrderTakerId, setSelectedOrderTakerId] = useState('');
+  const [orderType, setOrderType] = useState('video_editing');
   const [projectName, setProjectName] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -55,6 +56,7 @@ export const NewOrderPage = () => {
     try {
       const newOrder = await createOrderApi({
         order_taker_id: (isAdmin && selectedOrderTakerId) ? selectedOrderTakerId : undefined,
+        order_type: orderType,
         project_name: projectName.trim(),
         customer_name: customerName.trim() || undefined,
         customer_phone: customerPhone.trim() || undefined,
@@ -98,8 +100,8 @@ export const NewOrderPage = () => {
         )}
 
         <div className="glass-card p-5 space-y-3">
-          <div className="section-label mb-2">Order Identification</div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="section-label mb-2">Order Identification & Service Type</div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             {isAdmin ? (
               <Select
                 label="Assign to Order Taker"
@@ -116,6 +118,21 @@ export const NewOrderPage = () => {
             ) : (
               <Input label="Order Taker" value={`${user?.name} (${user?.employee_id})`} readOnly />
             )}
+            <Select
+              label="Order Service Type"
+              value={orderType}
+              onChange={e => setOrderType(e.target.value)}
+              required
+            >
+              <option value="video_editing">🎬 Video Editing</option>
+              <option value="reels_tiktok">📱 Reels / Shorts / TikTok</option>
+              <option value="youtube_video">📺 YouTube Full Video</option>
+              <option value="graphic_design">🎨 Graphic Design</option>
+              <option value="motion_graphics">✨ Motion Graphics</option>
+              <option value="social_media_ads">📢 Social Media Ads</option>
+              <option value="voiceover_audio">🎙️ Voiceover & Audio</option>
+              <option value="other">⚙️ Custom / Other</option>
+            </Select>
             <Input label="Date" value={currentDate} readOnly />
             <Input label="Time" value={currentTime} readOnly />
           </div>

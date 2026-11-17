@@ -25,10 +25,17 @@ const parseAdTracking = (notes, orderCreatedAt) => {
     month_name: monthName,
     present_days: 0,
     absent_days: defaultMonthDays,
-    clean_notes: notes || ''
+    clean_notes: notes || '',
+    order_type: 'video_editing'
   };
 
   if (!notes || typeof notes !== 'string') return tracking;
+
+  // Extract ORDER_TYPE if embedded: <!--ORDER_TYPE:video_editing-->
+  const typeMatch = notes.match(/<!--ORDER_TYPE:(.*?)-->/);
+  if (typeMatch) {
+    tracking.order_type = typeMatch[1].trim();
+  }
 
   const match = notes.match(/<!--AD_TRACKING:(\{.*?\})-->/);
   if (match) {
@@ -39,6 +46,9 @@ const parseAdTracking = (notes, orderCreatedAt) => {
       tracking.daily_records = Array.isArray(parsed.daily_records) ? parsed.daily_records : [];
       tracking.month_days = Number(parsed.month_days) || defaultMonthDays;
       tracking.month_name = parsed.month_name || monthName;
+      if (parsed.order_type) {
+        tracking.order_type = parsed.order_type;
+      }
 
       // Calculate present and absent days from daily_records if available
       if (tracking.daily_records.length > 0) {
@@ -54,17 +64,25 @@ const parseAdTracking = (notes, orderCreatedAt) => {
         tracking.present_days = tracking.active_days;
         tracking.absent_days = Math.max(0, tracking.month_days - tracking.present_days);
       }
-
-      tracking.clean_notes = notes.replace(/<!--AD_TRACKING:(\{.*?\})-->/, '').trim();
     } catch {
     }
   }
+
+  // Clean raw notes from any internal system markers
+  tracking.clean_notes = notes
+    .replace(/<!--AD_TRACKING:(\{.*?\})-->/g, '')
+    .replace(/<!--ORDER_TYPE:(.*?)-->/g, '')
+    .trim();
 
   return tracking;
 };
 
 const serializeAdTracking = (existingNotes, newTracking, orderCreatedAt) => {
-  const clean = (existingNotes || '').replace(/<!--AD_TRACKING:(\{.*?\})-->/, '').trim();
+  const clean = (existingNotes || '')
+    .replace(/<!--AD_TRACKING:(\{.*?\})-->/g, '')
+    .replace(/<!--ORDER_TYPE:(.*?)-->/g, '')
+    .trim();
+
   const defaultMonthDays = getDaysInBillingMonth(orderCreatedAt);
   const monthName = getBillingMonthName(orderCreatedAt);
 
@@ -76,6 +94,8 @@ const serializeAdTracking = (existingNotes, newTracking, orderCreatedAt) => {
     present_days = Number(newTracking.active_days !== undefined ? newTracking.active_days : 0);
   }
 
+  const orderType = newTracking.order_type || 'video_editing';
+
   const trackingObj = {
     status: newTracking.ad_status === 'active' ? 'active' : 'deactive',
     active_days: present_days,
@@ -83,11 +103,13 @@ const serializeAdTracking = (existingNotes, newTracking, orderCreatedAt) => {
     daily_records: daily_records,
     month_days: Number(newTracking.month_days) || defaultMonthDays,
     month_name: newTracking.month_name || monthName,
+    order_type: orderType,
     updated_at: new Date().toISOString()
   };
 
-  const tag = `<!--AD_TRACKING:${JSON.stringify(trackingObj)}-->`;
-  return clean ? `${clean}\n${tag}` : tag;
+  const adTag = `<!--AD_TRACKING:${JSON.stringify(trackingObj)}-->`;
+  const typeTag = `<!--ORDER_TYPE:${orderType}-->`;
+  return clean ? `${clean}\n${typeTag}\n${adTag}` : `${typeTag}\n${adTag}`;
 };
 
 const enrichOrderWithAdTracking = (order) => {
@@ -104,7 +126,8 @@ const enrichOrderWithAdTracking = (order) => {
     ad_month_name: tracking.month_name,
     ad_present_days: tracking.present_days,
     ad_absent_days: tracking.absent_days,
-    clean_notes: tracking.clean_notes
+    clean_notes: tracking.clean_notes,
+    order_type: tracking.order_type
   };
 };
 
