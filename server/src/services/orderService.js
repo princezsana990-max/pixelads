@@ -1,6 +1,7 @@
 const supabase = require('../config/supabase');
 const { ROLES, ORDER_STATUS, FILE_TYPES, PAYMENT_STATUS } = require('../constants/roles');
 const emailService = require('./emailService');
+const { createVideoSignedReadUrl } = require('./uploadService');
 const {
   enrichOrderWithAdTracking,
   serializeAdTracking,
@@ -288,6 +289,26 @@ const getOrderById = async (id, user) => {
     if (!isAssigned) {
       throw new Error('Access denied to this order');
     }
+  }
+
+  if (order.order_files && order.order_files.length > 0) {
+    order.order_files = await Promise.all(
+      order.order_files.map(async (file) => {
+        if (file.file_url && !file.file_url.startsWith('http://') && !file.file_url.startsWith('https://')) {
+          try {
+            const signedReadUrl = await createVideoSignedReadUrl(file.file_url);
+            return {
+              ...file,
+              storage_path: file.file_url,
+              file_url: signedReadUrl
+            };
+          } catch (err) {
+            return file;
+          }
+        }
+        return file;
+      })
+    );
   }
 
   return enrichOrderWithAdTracking(order);

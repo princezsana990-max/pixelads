@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Mic, Square, Trash2, Send, Loader2 } from 'lucide-react';
 import { getSignedUploadUrlApi } from '../../api/settings';
-import { supabase } from '../../utils/supabaseClient';
+import { uploadFileToR2OrSupabase } from '../../utils/videoUploader';
 import { formatDuration } from '../../utils/formatters';
 
 export const VoiceRecorder = ({ onSend, disabled = false }) => {
@@ -69,17 +69,21 @@ export const VoiceRecorder = ({ onSend, disabled = false }) => {
 
     try {
       const fileName = `voice_${Date.now()}.webm`;
-      const signData = await getSignedUploadUrlApi(fileName, 'chat-media');
+      const signData = await getSignedUploadUrlApi(fileName, 'chat-media', 'audio/webm');
 
-      const { error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .uploadToSignedUrl(signData.path, signData.token, audioBlob);
-
-      if (uploadError) throw new Error(uploadError.message);
+      await uploadFileToR2OrSupabase({
+        file: audioBlob,
+        path: signData.path,
+        token: signData.token,
+        signedUrl: signData.signedUrl,
+        provider: signData.provider || 'r2',
+        bucket: 'chat-media',
+        contentType: 'audio/webm'
+      });
 
       await onSend({
         message_type: 'voice',
-        audio_url: signData.publicUrl,
+        audio_url: signData.publicUrl || signData.path,
         audio_duration: recordingTime
       });
 

@@ -15,6 +15,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const storageRoutes = require('./routes/storageRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const communicationRoutes = require('./routes/communicationRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/communications', communicationRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 app.use(errorHandler);
 

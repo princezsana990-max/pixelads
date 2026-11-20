@@ -2,7 +2,7 @@ const { z } = require('zod');
 
 const orderFileSchema = z.object({
   file_type: z.string().min(1).default('attachment'),
-  file_url: z.string().url('Valid file URL required'),
+  file_url: z.string().min(1, 'File URL or storage path required'),
   file_name: z.string().min(1, 'File name required')
 });
 
@@ -39,7 +39,7 @@ const assignOrderSchema = z.object({
 });
 
 const submitWorkSchema = z.object({
-  video_url: z.string().url('Valid video URL required'),
+  video_url: z.string().min(1, 'Valid video URL or storage path required'),
   video_name: z.string().min(1, 'Video name required'),
   notes: z.string().optional()
 });

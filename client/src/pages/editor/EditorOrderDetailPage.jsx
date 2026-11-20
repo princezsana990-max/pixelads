@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Film, Upload, CheckCircle2, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Film, Upload, Download, AlertCircle } from 'lucide-react';
 import { getOrderByIdApi, submitWorkApi } from '../../api/orders';
-import { getSignedUploadUrlApi } from '../../api/settings';
-import { supabase } from '../../utils/supabaseClient';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -11,7 +9,9 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import { OrderChat } from '../../components/chat/OrderChat';
-import { formatDate, formatTime, formatCleanNotes, formatOrderType } from '../../utils/formatters';
+import { formatDate, formatTime, formatCleanNotes } from '../../utils/formatters';
+import { VideoUploader } from '../../components/shared/VideoUploader';
+import { useVideoUpload } from '../../hooks/useVideoUpload';
 
 export const EditorOrderDetailPage = () => {
   const { id } = useParams();
@@ -19,11 +19,13 @@ export const EditorOrderDetailPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const [videoFile, setVideoFile] = useState(null);
   const [submissionNotes, setSubmissionNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const videoUpload = useVideoUpload({
+    orderId: id,
+    maxMb: 50
+  });
 
   const fetchOrder = async () => {
     try {
@@ -42,31 +44,25 @@ export const EditorOrderDetailPage = () => {
 
   const handleSubmitWork = async (e) => {
     e.preventDefault();
-    if (!videoFile) return;
+    if (!videoUpload.file && !videoUpload.uploadedPath) return;
 
     setSubmitting(true);
-    setUploadProgress(10);
 
     try {
-      const fileName = `edited_${Date.now()}_${videoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const signData = await getSignedUploadUrlApi(fileName, 'order-files');
-      setUploadProgress(30);
+      let uploadResultPath = videoUpload.uploadedPath;
 
-      const { error: uploadErr } = await supabase.storage
-        .from('order-files')
-        .uploadToSignedUrl(signData.path, signData.token, videoFile);
-
-      if (uploadErr) throw new Error(uploadErr.message);
-      setUploadProgress(80);
+      if (!uploadResultPath) {
+        const result = await videoUpload.startUpload(id);
+        uploadResultPath = result.path;
+      }
 
       await submitWorkApi(id, {
-        video_url: signData.publicUrl,
-        video_name: videoFile.name,
+        video_url: uploadResultPath,
+        video_name: videoUpload.file?.name || 'edited_video.mp4',
         notes: submissionNotes.trim() || undefined
       });
 
-      setUploadProgress(100);
-      setVideoFile(null);
+      videoUpload.reset();
       setSubmissionNotes('');
       toast.success('Edited video submitted successfully for review!');
       await fetchOrder();
@@ -74,7 +70,6 @@ export const EditorOrderDetailPage = () => {
       toast.error(err.message || 'Failed to submit edited work');
     } finally {
       setSubmitting(false);
-      setUploadProgress(0);
     }
   };
 
@@ -139,36 +134,12 @@ export const EditorOrderDetailPage = () => {
               </CardHeader>
 
               <form onSubmit={handleSubmitWork} className="space-y-4">
-                <div>
-                  <label className="form-label">
-                    Select Finished Video File (MP4, MOV, MKV) *
-                  </label>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                    required
-                    disabled={submitting}
-                    className="glass-input w-full text-xs file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-white/20 file:text-xs file:font-heading file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
-                  />
-                  {videoFile && (
-                    <p className="mt-1.5 text-xs text-white/60 font-mono">
-                      Selected: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(2)} MB)
-                    </p>
-                  )}
-                </div>
-
-                {submitting && uploadProgress > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-white/60 font-mono">
-                      <span>Uploading to Storage...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
-                    </div>
-                  </div>
-                )}
+                <VideoUploader
+                  uploadState={videoUpload}
+                  onFileSelect={videoUpload.selectFile}
+                  label="Select Finished Video File (MP4, MOV, WEBM, MKV) *"
+                  disabled={submitting}
+                />
 
                 <Textarea
                   label="Submission Notes (Optional)"
@@ -176,17 +147,17 @@ export const EditorOrderDetailPage = () => {
                   onChange={(e) => setSubmissionNotes(e.target.value)}
                   placeholder="e.g. Cut version 2 with corrected colour grading and requested music track..."
                   rows={3}
-                  disabled={submitting}
+                  disabled={submitting || videoUpload.uploading}
                 />
 
                 <Button
                   type="submit"
                   className="w-full"
-                  loading={submitting}
-                  disabled={!videoFile}
+                  loading={submitting || videoUpload.uploading}
+                  disabled={!videoUpload.file && !videoUpload.uploadedPath}
                 >
                   <Upload className="w-4 h-4 mr-1.5" />
-                  Upload & Submit Work
+                  {videoUpload.uploadedPath ? 'Submit Video Work' : 'Upload & Submit Work'}
                 </Button>
               </form>
             </Card>

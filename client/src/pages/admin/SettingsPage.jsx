@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, Save, Upload, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { getSignedUploadUrlApi } from '../../api/settings';
-import { supabase } from '../../utils/supabaseClient';
+import { uploadFileToR2OrSupabase } from '../../utils/videoUploader';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
@@ -46,15 +46,19 @@ export const SettingsPage = () => {
 
     try {
       const fileName = `logo_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const signData = await getSignedUploadUrlApi(fileName, 'branding');
+      const signData = await getSignedUploadUrlApi(fileName, 'branding', file.type);
 
-      const { error: uploadErr } = await supabase.storage
-        .from('branding')
-        .uploadToSignedUrl(signData.path, signData.token, file);
+      await uploadFileToR2OrSupabase({
+        file,
+        path: signData.path,
+        token: signData.token,
+        signedUrl: signData.signedUrl,
+        provider: signData.provider || 'r2',
+        bucket: 'branding',
+        contentType: file.type || 'image/png'
+      });
 
-      if (uploadErr) throw new Error(uploadErr.message);
-
-      setFormData((prev) => ({ ...prev, company_logo_url: signData.publicUrl }));
+      setFormData((prev) => ({ ...prev, company_logo_url: signData.publicUrl || signData.path }));
       toast.success('Logo uploaded successfully');
     } catch (err) {
       toast.error(err.message || 'Failed to upload logo');
